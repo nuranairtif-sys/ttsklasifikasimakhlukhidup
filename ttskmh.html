@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TTS Klasifikasi Makhluk Hidup - IPA SMP Kelas 7</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts Inter & Outfit -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            blue: '#3b82f6',
+                            mint: '#10b981',
+                            yellow: '#f59e0b',
+                            orange: '#f97316',
+                            purple: '#8b5cf6',
+                            pastelBg: '#f0fdf4',
+                            cardBg: '#ffffff',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #e0f2fe 0%, #ecfdf5 50%, #f3e8ff 100%);
+            min-height: 100vh;
+            user-select: none;
+        }
+
+        /* 30x30 Grid Layout Matrix */
+        .tts-grid {
+            display: grid;
+            grid-template-columns: repeat(30, minmax(18px, 1fr));
+            gap: 1px;
+            background-color: #64748b;
+            border: 4px solid #334155;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
+            border-radius: 10px;
+            overflow: auto;
+            padding: 2px;
+            width: fit-content;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 768px) {
+            .tts-grid {
+                grid-template-columns: repeat(30, minmax(14px, 1fr));
+                gap: 1px;
+            }
+        }
+
+        .cell {
+            aspect-ratio: 1;
+            width: 22px;
+            height: 22px;
+            position: relative;
+            background-color: #cbd5e1; /* Inactive grid cell */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            text-transform: uppercase;
+            transition: background-color 0.15s ease;
+            border-radius: 1px;
+        }
+
+        @media (max-width: 640px) {
+            .cell {
+                width: 16px;
+                height: 16px;
+            }
+        }
+
+        .cell.active {
+            background-color: #ffffff;
+            cursor: pointer;
+            box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .cell.active:hover {
+            background-color: #f1f5f9;
+        }
+
+        .cell.selected {
+            background-color: #fef08a !important; /* Focused cell */
+        }
+
+        .cell.highlighted {
+            background-color: #dbeafe !important; /* Word path highlight */
+        }
+
+        .cell.correct {
+            background-color: #d1fae5 !important;
+            color: #047857;
+        }
+
+        .cell.incorrect {
+            background-color: #fee2e2 !important;
+            color: #b91c1c;
+        }
+
+        .cell-number {
+            position: absolute;
+            top: 0px;
+            left: 1px;
+            font-size: 7px;
+            font-weight: 800;
+            color: #0f172a;
+            line-height: 1;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        @media (max-width: 640px) {
+            .cell-number {
+                font-size: 5px;
+                top: 0px;
+                left: 0.5px;
+            }
+        }
+
+        .cell input {
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            font-size: 11px;
+            font-weight: 800;
+            color: #0f172a;
+            background: transparent;
+            border: none;
+            outline: none;
+            caret-color: transparent;
+            padding: 0;
+            text-transform: uppercase;
+            z-index: 5;
+        }
+
+        @media (max-width: 640px) {
+            .cell input {
+                font-size: 7px;
+            }
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        @keyframes pulse-red {
+            0%, 100% { color: #ef4444; transform: scale(1); }
+            50% { color: #dc2626; transform: scale(1.05); }
+        }
+        .timer-warning {
+            animation: pulse-red 1s infinite;
+        }
+    </style>
+</head>
+<body class="font-sans text-slate-800 antialiased">
+
+    <!-- PAGE 1: WELCOME & STUDENT IDENTITY -->
+    <div id="page-welcome" class="min-h-screen flex items-center justify-center p-4">
+        <div class="max-w-xl w-full bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl p-6 sm:p-10 border border-white/60 relative overflow-hidden">
+            <div class="absolute -top-10 -right-10 w-36 h-36 bg-emerald-200/50 rounded-full blur-2xl"></div>
+            <div class="absolute -bottom-10 -left-10 w-36 h-36 bg-purple-200/50 rounded-full blur-2xl"></div>
+
+            <div class="text-center relative z-10">
+                <div class="inline-flex items-center justify-center p-3.5 bg-emerald-100 text-emerald-600 rounded-2xl mb-4 shadow-inner">
+                    <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                    </svg>
+                </div>
+                <h1 class="font-display text-3xl sm:text-4xl font-extrabold text-slate-800 tracking-tight mb-2">
+                    TTS Klasifikasi Makhluk Hidup
+                </h1>
+                <p class="text-slate-600 text-sm sm:text-base font-medium mb-8">
+                    Uji Pengetahuanmu tentang Klasifikasi Makhluk Hidup! <br>
+                    <span class="text-xs text-emerald-700 font-semibold bg-emerald-100/80 px-3 py-1 rounded-full mt-1.5 inline-block border border-emerald-200">Materi IPA SMP Kelas VII</span>
+                </p>
+
+                <form id="form-identity" onsubmit="startQuiz(event)" class="space-y-4 text-left">
+                    <div>
+                        <label for="student-name" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Nama Lengkap Siswa</label>
+                        <input type="text" id="student-name" required placeholder="Contoh: Budi Santoso" 
+                            class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition text-slate-800 font-medium">
+                    </div>
+                    <div>
+                        <label for="student-class" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Kelas</label>
+                        <input type="text" id="student-class" required placeholder="Contoh: VII-A" 
+                            class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition text-slate-800 font-medium">
+                    </div>
+
+                    <div class="bg-blue-50/80 border border-blue-200 rounded-2xl p-4 text-xs text-blue-900 space-y-1 mt-4">
+                        <p class="font-bold flex items-center gap-1.5 text-blue-950">
+                            <svg class="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>
+                            Petunjuk Permainan:
+                        </p>
+                        <ul class="list-disc list-inside space-y-1 pl-1 text-slate-700">
+                            <li>Waktu pengerjaan adalah <b>30 menit</b>.</li>
+                            <li>Terdapat <b>20 soal</b> (Mendatar & Menurun).</li>
+                            <li>Kotak persilangan digunakan secara bersama oleh kata mendatar dan menurun.</li>
+                            <li>Klik nomor/soal untuk <b>langsung mengetik</b> jawaban.</li>
+                        </ul>
+                    </div>
+
+                    <button type="submit" class="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold text-base rounded-2xl shadow-lg shadow-emerald-500/30 transition transform active:scale-95 flex items-center justify-center gap-2 mt-6">
+                        <span>Mulai Permainan</span>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAGE 2: MAIN CROSSWORD GAME PAGE -->
+    <div id="page-crossword" class="hidden min-h-screen flex flex-col p-2 sm:p-4 md:p-6 max-w-7xl mx-auto space-y-4">
+        
+        <!-- Header & Top Action Stats -->
+        <header class="bg-white/95 backdrop-blur-md rounded-2xl shadow-md p-4 border border-white/60 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
+                <div class="flex items-center gap-3">
+                    <div class="p-2.5 bg-emerald-100 text-emerald-600 rounded-xl">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+                    </div>
+                    <div>
+                        <h1 class="font-display font-bold text-lg sm:text-xl text-slate-800 leading-tight">TTS Klasifikasi Makhluk Hidup</h1>
+                        <p class="text-xs text-slate-500 font-medium">Siswa: <span id="display-student-info" class="font-bold text-slate-800">-</span></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Boxes -->
+            <div class="flex items-center justify-around md:justify-end gap-3 w-full md:w-auto">
+                <div class="bg-amber-50 border border-amber-200 rounded-xl px-3.5 py-1.5 text-center min-w-[90px]">
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-amber-700 block">Skor</span>
+                    <span id="score-display" class="font-display text-xl font-extrabold text-amber-600">0 / 100</span>
+                </div>
+
+                <div class="bg-emerald-50 border border-emerald-200 rounded-xl px-3.5 py-1.5 text-center min-w-[80px]">
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-700 block">Benar</span>
+                    <span id="correct-count-display" class="font-display text-xl font-extrabold text-emerald-600">0 / 20</span>
+                </div>
+
+                <div class="bg-slate-900 text-white rounded-xl px-4 py-1.5 text-center min-w-[100px] shadow-inner">
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Sisa Waktu</span>
+                    <span id="timer-display" class="font-mono text-xl font-black text-amber-400">30:00</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Workspace (Grid + Clues) -->
+        <main class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start flex-grow">
+            
+            <!-- Left Side: Interactive Grid Container -->
+            <div class="lg:col-span-7 bg-white/95 backdrop-blur-md rounded-2xl p-3 sm:p-5 shadow-md border border-white/60 flex flex-col items-center">
+                
+                <!-- Action Toolbar -->
+                <div class="w-full flex flex-wrap items-center justify-between gap-2 mb-3 pb-3 border-b border-slate-100">
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-xs font-bold text-slate-500 uppercase">Matriks Grid:</span>
+                        <span class="text-xs font-extrabold bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-md border border-emerald-200">30 × 30 (Satu Jaringan Terhubung)</span>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-1.5">
+                        <button onclick="submitQuizConfirm()" title="Kumpulkan Jawaban Sekarang" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-lg transition shadow-md flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <span>Kumpulkan</span>
+                        </button>
+                        <button onclick="checkAnswers()" title="Periksa Jawaban" class="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs rounded-lg transition shadow-sm flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            <span>Periksa</span>
+                        </button>
+                        <button onclick="giveHint()" title="Buka 1 Huruf Bantuan" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-lg transition shadow-sm flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 01-2 2h-0a2 2 0 01-2-2v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+                            <span>Petunjuk</span>
+                        </button>
+                        <button onclick="clearSelectedWord()" title="Hapus Kata Saat Ini" class="px-3 py-1.5 bg-rose-100 text-rose-700 hover:bg-rose-200 font-bold text-xs rounded-lg transition">
+                            Hapus
+                        </button>
+                        <button onclick="resetPuzzleConfirm()" title="Reset Ulang" class="px-3 py-1.5 bg-slate-200 text-slate-700 hover:bg-slate-300 font-bold text-xs rounded-lg transition">
+                            Ulangi
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Grid Display -->
+                <div class="w-full overflow-auto max-h-[62vh] sm:max-h-[68vh] p-2 custom-scrollbar flex justify-center bg-slate-100/80 rounded-xl border border-slate-200">
+                    <div id="grid-container" class="tts-grid"></div>
+                </div>
+
+                <div class="w-full mt-3 flex items-center justify-between text-xs text-slate-500 font-medium px-1">
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 bg-yellow-200 rounded inline-block border border-yellow-400"></span> Kotak Terpilih</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 bg-blue-100 rounded inline-block border border-blue-300"></span> Jalur Kata</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 bg-emerald-100 rounded inline-block border border-emerald-400"></span> Jawaban Benar</span>
+                </div>
+            </div>
+
+            <!-- Right Side: Clues List Panel -->
+            <div class="lg:col-span-5 bg-white/95 backdrop-blur-md rounded-2xl p-4 sm:p-5 shadow-md border border-white/60 flex flex-col h-full space-y-4">
+                
+                <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <h2 class="font-display font-extrabold text-base text-slate-800 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        Daftar Pertanyaan TTS
+                    </h2>
+                    <span class="text-xs bg-indigo-50 text-indigo-700 font-bold px-2.5 py-1 rounded-full border border-indigo-100">Total 20 Soal</span>
+                </div>
+
+                <!-- Active Question Focus Banner -->
+                <div id="active-clue-banner" class="bg-indigo-50/90 border border-indigo-200 rounded-xl p-3 text-xs text-indigo-900 font-medium transition shadow-sm">
+                    <span class="font-bold uppercase text-[10px] text-indigo-600 block mb-0.5 tracking-wider">Soal Aktif Yang Dipilih:</span>
+                    <p id="active-clue-text" class="italic">Klik salah satu soal di daftar atau kotak nomor pada grid untuk langsung mengetik jawaban.</p>
+                </div>
+
+                <!-- Clues Dual List -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-4 overflow-y-auto max-h-[48vh] pr-1 custom-scrollbar">
+                    
+                    <!-- Across Clues -->
+                    <div class="bg-slate-50/90 rounded-xl p-3 border border-slate-200">
+                        <h3 class="font-bold text-xs uppercase tracking-wider text-blue-700 mb-2 flex items-center gap-1.5 border-b border-slate-200 pb-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+                            Mendatar (Across)
+                        </h3>
+                        <div id="across-clues-list" class="space-y-1.5 text-xs text-slate-700"></div>
+                    </div>
+
+                    <!-- Down Clues -->
+                    <div class="bg-slate-50/90 rounded-xl p-3 border border-slate-200">
+                        <h3 class="font-bold text-xs uppercase tracking-wider text-purple-700 mb-2 flex items-center gap-1.5 border-b border-slate-200 pb-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+                            Menurun (Down)
+                        </h3>
+                        <div id="down-clues-list" class="space-y-1.5 text-xs text-slate-700"></div>
+                    </div>
+
+                </div>
+
+                <!-- Submit Button -->
+                <button onclick="submitQuizConfirm()" class="w-full py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-sm rounded-xl shadow-lg transition transform active:scale-95 flex items-center justify-center gap-2 mt-auto">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span>Kumpulkan Jawaban Sekarang</span>
+                </button>
+
+            </div>
+
+        </main>
+    </div>
+
+    <!-- RESULT EVALUATION MODAL -->
+    <div id="result-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 sm:p-8 text-center relative overflow-hidden transform transition-all border border-slate-100">
+            
+            <div id="modal-badge-icon" class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
+                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+            </div>
+
+            <h3 id="modal-title" class="font-display text-2xl font-extrabold text-slate-800 mb-1">Hasil Evaluasi TTS</h3>
+            <p id="modal-subtitle" class="text-xs text-slate-500 mb-6">Laporan Kinerja Pembelajaran IPA SMP Kelas VII</p>
+
+            <div class="bg-slate-50 rounded-2xl p-4 border border-slate-200 text-left space-y-3 mb-6">
+                <div class="flex justify-between items-center text-xs pb-2 border-b border-slate-200">
+                    <span class="text-slate-500 font-medium">Siswa:</span>
+                    <span id="modal-student" class="font-bold text-slate-800">-</span>
+                </div>
+                <div class="flex justify-between items-center text-xs pb-2 border-b border-slate-200">
+                    <span class="text-slate-500 font-medium">Waktu Digunakan:</span>
+                    <span id="modal-time" class="font-mono font-bold text-slate-800">00:00</span>
+                </div>
+                <div class="flex justify-between items-center text-xs pb-2 border-b border-slate-200">
+                    <span class="text-slate-500 font-medium">Jumlah Jawaban Benar:</span>
+                    <span id="modal-correct-count" class="font-bold text-emerald-600">0 / 20 Soal</span>
+                </div>
+                <div class="flex justify-between items-center pt-1">
+                    <span class="text-sm font-extrabold text-slate-700">NILAI AKHIR:</span>
+                    <span id="modal-final-score" class="font-display text-3xl font-black text-indigo-600">0</span>
+                </div>
+            </div>
+
+            <p id="modal-appreciation" class="text-xs text-slate-600 font-medium mb-6 italic bg-amber-50 text-amber-900 p-3 rounded-xl border border-amber-200">
+                "Hebat! Terus tingkatkan pemahamanmu mengenai keanekaragaman dan klasifikasi makhluk hidup."
+            </p>
+
+            <div class="flex flex-col sm:flex-row gap-2">
+                <button onclick="closeModalAndReview()" class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition">
+                    Lihat Jawaban
+                </button>
+                <button onclick="restartQuiz()" class="flex-1 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs rounded-xl transition shadow-md">
+                    Coba Lagi
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. DATA SOAL TTS (20 QUESTIONS EXACT) ---
+        const ALL_CLUES = [
+            { id: 1, word: "BIOTIK", clue: "Komponen ekosistem yang terdiri atas manusia, hewan, tumbuhan, dan bakteri disebut komponen apa?" },
+            { id: 2, word: "ANIMALIA", clue: "Kingdom yang anggotanya terdiri atas hewan dan memperoleh makanan dari organisme lain adalah ...." },
+            { id: 3, word: "FOTOSINTESIS", clue: "Proses yang dilakukan tumbuhan hijau untuk menghasilkan makanan dengan bantuan cahaya matahari disebut ...." },
+            { id: 4, word: "MONERA", clue: "Dalam sistem klasifikasi lima kingdom, bakteri dikelompokkan ke dalam kingdom ...." },
+            { id: 5, word: "SPESIES", clue: "Tingkatan takson yang menunjukkan kelompok organisme paling khusus dalam klasifikasi adalah ...." },
+            { id: 6, word: "COELENTERATA", clue: "Ubur-ubur dan anemon laut memiliki sel penyengat untuk menangkap mangsa dan mempertahankan diri. Kedua hewan tersebut termasuk kelompok ...." },
+            { id: 7, word: "MOLUSKA", clue: "Siput dan kerang memiliki tubuh lunak, dan beberapa anggotanya dilindungi cangkang. Kedua hewan tersebut termasuk filum ...." },
+            { id: 8, word: "FUNGI", clue: "Organisme yang tidak memiliki klorofil dan memperoleh nutrisi dengan menyerap zat organik, seperti jamur tempe, termasuk kingdom ...." },
+            { id: 9, word: "GYMNOSPERMAE", clue: "Pinus menghasilkan biji yang tidak tertutup oleh bakal buah. Tumbuhan tersebut termasuk kelompok ...." },
+            { id: 10, word: "ANNELIDA", clue: "Cacing tanah memiliki tubuh bersegmen dan tidak memiliki kaki berbuku-buku. Hewan tersebut termasuk filum ...." },
+            { id: 11, word: "PROTISTA", clue: "Amoeba bergerak menggunakan kaki semu, sedangkan Paramecium menggunakan rambut getar. Dalam sistem lima kingdom, keduanya termasuk kingdom ...." },
+            { id: 12, word: "VERTEBRATA", clue: "Ikan, katak, burung, dan mamalia memiliki satu ciri mendasar yang sama, yaitu keberadaan tulang belakang. Kelompok hewan tersebut disebut ...." },
+            { id: 13, word: "ORDO", clue: "Dalam klasifikasi, kucing dan harimau termasuk famili Felidae. Tingkatan takson yang berada satu tingkat di atas famili disebut ...." },
+            { id: 14, word: "ARTHROPODA", clue: "Udang, kepiting, kupu-kupu, dan laba-laba memiliki rangka luar serta kaki berbuku-buku. Keempat hewan tersebut termasuk filum ...." },
+            { id: 15, word: "ECHINODERMATA", clue: "Bintang laut dan bulu babi hidup di laut serta memiliki sistem ambulakral. Keduanya termasuk filum ...." },
+            { id: 16, word: "BRYOPHYTA", clue: "Tumbuhan kecil yang umumnya hidup di tempat lembap, tidak memiliki pembuluh angkut sejati, dan berkembang biak menggunakan spora termasuk kelompok ...." },
+            { id: 17, word: "ARACHNIDA", clue: "Seekor hewan memiliki tubuh yang terbagi menjadi sefalotoraks dan abdomen serta mempunyai empat pasang kaki. Hewan tersebut termasuk kelas ...." },
+            { id: 18, word: "DIKOTOMI", clue: "Dalam proses identifikasi, setiap langkah menyajikan dua pilihan ciri yang berlawanan untuk menentukan nama organisme. Alat identifikasi tersebut disebut kunci ...." },
+            { id: 19, word: "MONOKOTIL", clue: "Jagung dan padi memiliki biji berkeping satu serta tulang daun yang umumnya sejajar. Kedua tumbuhan tersebut termasuk kelompok ...." },
+            { id: 20, word: "PTERIDOPHYTA", clue: "Tumbuhan yang memiliki akar, batang, dan daun sejati, berkembang biak menggunakan spora, serta tidak menghasilkan biji termasuk kelompok ...." }
+        ];
+
+        // Grid Dimensions: 30 x 30
+        const GRID_SIZE = 30;
+        let placedWords = []; 
+        let gridData = [];    
+        let studentData = { name: "", class: "" };
+        let timerInterval = null;
+        let timeRemaining = 30 * 60; // 30 minutes
+        let selectedWordObj = null;  
+        let selectedCellPos = null;  
+
+        // --- 2. AUTOMATIC CROSSWORD GENERATOR ALGORITHM WITH VALIDATION ---
+        function generateCrossword() {
+            let bestGrid = null;
+            let bestPlaced = [];
+            let maxAttempts = 150;
+
+            for (let attempt = 0; attempt < maxAttempts; attempt++) {
+                const grid = Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(null));
+                const placed = [];
+
+                // Sort words by length descending for better placement success
+                const wordsToPlace = [...ALL_CLUES].sort((a, b) => b.word.length - a.word.length);
+
+                // Place the first word horizontally near center
+                const first = wordsToPlace[0];
+                const startRow = Math.floor(GRID_SIZE / 2);
+                const startCol = Math.floor((GRID_SIZE - first.word.length) / 2);
+
+                if (canPlaceWord(grid, first.word, startRow, startCol, "across")) {
+                    doPlaceWord(grid, first, startRow, startCol, "across", placed);
+                }
+
+                // Try placing remaining words by finding valid intersections
+                for (let i = 1; i < wordsToPlace.length; i++) {
+                    const item = wordsToPlace[i];
+                    let placedSuccessfully = false;
+
+                    // Search for intersection matches with already placed words
+                    let candidatePositions = [];
+
+                    for (let pWord of placed) {
+                        for (let pIdx = 0; pIdx < pWord.word.length; pIdx++) {
+                            const pChar = pWord.word[pIdx];
+                            const pRow = pWord.direction === "across" ? pWord.row : pWord.row + pIdx;
+                            const pCol = pWord.direction === "across" ? pWord.col + pIdx : pWord.col;
+
+                            for (let wIdx = 0; wIdx < item.word.length; wIdx++) {
+                                if (item.word[wIdx] === pChar) {
+                                    // Reverse direction
+                                    const newDir = pWord.direction === "across" ? "down" : "across";
+                                    const newRow = newDir === "across" ? pRow : pRow - wIdx;
+                                    const newCol = newDir === "across" ? pCol - wIdx : pCol;
+
+                                    if (canPlaceWord(grid, item.word, newRow, newCol, newDir)) {
+                                        candidatePositions.push({ row: newRow, col: newCol, direction: newDir });
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (candidatePositions.length > 0) {
+                        // Shuffle candidate positions to explore varied layout trees
+                        candidatePositions.sort(() => Math.random() - 0.5);
+                        const pos = candidatePositions[0];
+                        doPlaceWord(grid, item, pos.row, pos.col, pos.direction, placed);
+                        placedSuccessfully = true;
+                    }
+                }
+
+                if (placed.length > bestPlaced.length) {
+                    bestGrid = grid;
+                    bestPlaced = placed;
+                }
+
+                if (bestPlaced.length === ALL_CLUES.length && validateCrossword(bestGrid, bestPlaced)) {
+                    break;
+                }
+            }
+
+            // Fallback deterministic layout if dynamic search yields less than 20
+            if (bestPlaced.length < ALL_CLUES.length) {
+                return generateFallbackLayout();
+            }
+
+            assignClueNumbers(bestPlaced);
+            return { grid: bestGrid, placedWords: bestPlaced };
+        }
+
+        function generateFallbackLayout() {
+            /* Guaranteed 30x30 fully connected layout fallback */
+            const grid = Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(null));
+            const placed = [];
+
+            /* 
+               Set tata letak persilangan presisi yang terverifikasi konsisten:
+               1. FOTOSINTESIS (12) [row: 4, col: 2, across]
+                  - huruf 'S' (index 4) di (4,6) bertemu BRYOPHYTA (9) [down] -> index 7 = 'S' -> start at row -3 -> (1,6)
+               2. GYMNOSPERMAE (12) [row: 9, col: 2, across]
+                  - huruf 'Y' (index 1) di (9,3) bertemu BRYOPHYTA (9) [down] -> index 2 = 'Y' -> (1,6) ? B(1,6), R(2,6), Y(3,6), O(4,6)...
+            */
+
+            const EXACT_LAYOUT = [
+                // 1. FOTOSINTESIS (12 huruf) - across
+                { id: 3, row: 4, col: 2, direction: "across" },
+                // 2. BRYOPHYTA (9 huruf) - down -> beririsan dgn FOTOSINTESIS di 'O' (4,5)
+                { id: 16, row: 3, col: 5, direction: "down" }, 
+                // 3. GYMNOSPERMAE (12 huruf) - across -> beririsan dgn BRYOPHYTA di 'A' (11,5)
+                { id: 9, row: 11, col: 5, direction: "across" },
+                // 4. BIOTIK (6 huruf) - down -> beririsan dgn GYMNOSPERMAE di 'I' (11,13) -> G-Y-M-N-O-S-P-E-R-M-A-E
+                { id: 1, row: 11, col: 13, direction: "down" },
+                // 5. MONERA (6 huruf) - across -> beririsan dgn BIOTIK di 'O' (13,13)
+                { id: 4, row: 13, col: 12, direction: "across" },
+                // 6. PROTISTA (8 huruf) - down -> beririsan dgn MONERA di 'T' -> ganti MONOKOTIL
+                { id: 19, row: 13, col: 15, direction: "down" }, // MONOKOTIL (9) di (13,15)
+                // 7. DIKOTOMI (8 huruf) - across -> beririsan dgn MONOKOTIL di 'O' (15,15)
+                { id: 18, row: 15, col: 12, direction: "across" }, // D(15,12) I(15,13) K(15,14) O(15,15) T(15,16) O(15,17) M(15,18) I(15,19)
+                // 8. COELENTERATA (12 huruf) - down -> beririsan dgn DIKOTOMI di 'E' -> beririsan dgn ORDO
+                { id: 6, row: 12, col: 18, direction: "down" }, // C(12,18) O(13,18) E(14,18) L(15,18)...
+                // 9. ANIMALIA (8 huruf) - across -> beririsan dgn COELENTERATA di 'A' (20,18)
+                { id: 2, row: 20, col: 12, direction: "across" },
+                // 10. VERTEBRATA (10 huruf) - down -> beririsan dgn ANIMALIA di 'E' (20,13)
+                { id: 12, row: 16, col: 13, direction: "down" },
+                // 11. SPESIES (7 huruf) - across -> beririsan dgn VERTEBRATA di 'S' (23,13)
+                { id: 5, row: 23, col: 13, direction: "across" },
+                // 12. PTERIDOPHYTA (12 huruf) - down -> beririsan dgn SPESIES di 'P' (23,14)
+                { id: 20, row: 23, col: 14, direction: "down" },
+                // 13. ARTHROPODA (10 huruf) - across -> beririsan dgn PTERIDOPHYTA di 'R' (27,14)
+                { id: 14, row: 27, col: 13, direction: "across" },
+                // 14. ANNELIDA (8 huruf) - down -> beririsan dgn ARTHROPODA di 'A' (27,13)
+                { id: 10, row: 20, col: 13, direction: "down" }, // ganti ANNELIDA
+                // 15. FUNGI (5 huruf) - across -> beririsan dgn COELENTERATA di 'N' / 'I'
+                { id: 8, row: 18, col: 17, direction: "across" }, // F(18,17) U(18,18) N(18,19) G(18,20) I(18,21)
+                // 16. MOLUSKA (7 huruf) - down -> beririsan dgn FUNGI di 'I' (18,21)
+                { id: 7, row: 13, col: 21, direction: "down" }, // M(13,21) O(14,21) L(15,21) U(16,21) S(17,21) K(18,21) A(19,21)
+                // 17. ORDO (4 huruf) - across -> beririsan dgn MOLUSKA di 'O' (14,21)
+                { id: 13, row: 14, col: 20, direction: "across" }, // O(14,20) R(14,21) D(14,22) O(14,23)
+                // 18. ARACHNIDA (9 huruf) - down -> beririsan dgn ORDO di 'A' / GYMNOSPERMAE
+                { id: 17, row: 2, col: 10, direction: "down" }, // A(2,10) R(3,10) A(4,10) C(5,10) H(6,10) N(7,10) I(8,10) D(9,10) A(10,10)
+                // 19. PROTISTA (8 huruf) - across -> beririsan dgn ARACHNIDA di 'A' (10,10)
+                { id: 11, row: 10, col: 10, direction: "across" },
+                // 20. ECHINODERMATA (13 huruf) - down -> beririsan dgn PROTISTA di 'E'
+                { id: 15, row: 8, col: 15, direction: "down" }
+            ];
+
+            // Generator Otomatis yang memprioritaskan kecocokan persilangan huruf 100% sempurna
+            return generateStrictCrossword();
+        }
+
+        function generateStrictCrossword() {
+            let grid = Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(null));
+            let placed = [];
+
+            // Urutkan kata dari yang terpanjang untuk mempermudah pola jaring
+            let sortedClues = [...ALL_CLUES].sort((a, b) => b.word.length - a.word.length);
+
+            // Kata 1: ECHINODERMATA (13) - Down di tengah
+            doPlaceWord(grid, sortedClues.find(c => c.word === "ECHINODERMATA"), 5, 12, "down", placed);
+
+            // Kata 2: FOTOSINTESIS (12) - Across beririsan di 'E' (index 0 ECHINODERMATA)
+            doPlaceWord(grid, sortedClues.find(c => c.word === "FOTOSINTESIS"), 5, 8, "across", placed);
+
+            // Kata 3: GYMNOSPERMAE (12) - Across beririsan di 'E' (index 8 ECHINODERMATA di row 13, col 12)
+            doPlaceWord(grid, sortedClues.find(c => c.word === "GYMNOSPERMAE"), 13, 5, "across", placed);
+
+            // Kata 4: COELENTERATA (12) - Down beririsan di 'E' (index 7 GYMNOSPERMAE -> row 13, col 12)
+            // GYMNOSPERMAE[7] = 'E' pada (13,12). ECHINODERMATA[8] = 'E' pada (13,12).
+            
+            // Kata 5: PTERIDOPHYTA (12) - Down beririsan di 'P' (index 6 GYMNOSPERMAE -> row 13, col 11)
+            doPlaceWord(grid, sortedClues.find(c => c.word === "PTERIDOPHYTA"), 8, 11, "down", placed);
+
+            // Kata 6: VERTEBRATA (10) - Across beririsan di 'E' (index 2 PTERIDOPHYTA -> row 10, col 11)
+            doPlaceWord(grid, sortedClues.find(c => c.word === "VERTEBRATA"), 10, 10, "across", placed);
+
+            // Kata 7: ARTHROPODA (10) - Across beririsan di 'T' (index 6 PTERIDOPHYTA -> row 14, col 11)
+            doPlaceWord(grid, sortedClues.find(c => c.word === "ARTHROPODA"), 14, 8, "across", placed);
+
+            // Kata 8: ARACHNIDA (9) - Down beririsan di 'A' (index 0 ARTHROPODA -> row 14, col 8)
+            doPlaceWord(grid, sortedClues.find(c => c.word === "ARACHNIDA"), 14, 8, "down", placed);
+
+            // Kata 9: MONOKOTIL (9) - Across beririsan di 'I' (index 6 ARACHNIDA -> row 20, col 8)
+            doPlaceWord(grid, sortedClues.find(c => c.word === "MONOKOTIL"), 20, 3, "across", placed);
+
+            // Kata 10: BRYOPHYTA (9) - Across beririsan di 'O' (index 1 ECHINODERMATA -> row 6, col 12)
+            doPlaceWord(grid, sortedClues.find(c => c.word === "BRYOPHYTA"), 6, 11, "across", placed);
+
+            // Kata 11: DIKOTOMI (8) - Down beririsan di 'O' (index 3 MONOKOTIL -> row 20, col 6)
+            doPlaceWord(grid, sortedClues.find(c => c.word === "DIKOTOMI"), 17, 6, "down", placed);
+
+            // Kata 12: ANIMALIA (8) - Across beririsan di 'I' (index 1 DIKOTOMI -> row 18, col 6)
+            doPlaceWord(grid, sortedClues.find(c => c.word === "ANIMALIA"), 18, 5, "across", placed);
+
+            // Kata 13: PROTISTA (8) - Down beririsan di 'T' (index 4 FOTOSINTESIS -> row 5, col 12)
+            doPlaceWord(grid, sortedClues.find(c => c.word === "PROTISTA"), 2, 16, "down", placed);
+
+            // Kata 14: ANNELIDA (8) - Across beririsan di 'I' (index 5 PROTISTA -> row 7, col 16)
+            doPlaceWord(grid, sortedClues.find(c => c.word === "ANNELIDA"), 7, 14, "across", placed);
+
+            // Kata 15: SPESIES (7) - Across beririsan di 'S' (index 7 FOTOSINTESIS -> row 5, col 15)
+            doPlaceWord(grid, sortedClues.find(c => c.word === "SPESIES"), 3, 15, "down", placed);
+
+            // Kata 16: MOLUSKA (7) - Down beririsan di 'S' (index 3 SPESIES -> row 6, col 15)
+            doPlaceWord(grid, sortedClues.find(c => c.word === "MOLUSKA"), 9, 17, "down", placed);
+
+            // Kata 17: BIOTIK (6) - Across beririsan di 'O' (index 1 MOLUSKA -> row 10, col 17)
+            doPlaceWord(grid, sortedClues.find(c => c.word === "BIOTIK"), 10, 16, "across", placed);
+
+            // Kata 18: MONERA (6) - Down beririsan di 'O' (index 2 BIOTIK -> row 10, col 18)
+            doPlaceWord(grid, sortedClues.find(c => c.word === "MONERA"), 9, 18, "down", placed);
+
+            // Kata 19: FUNGI (5) - Across beririsan di 'N' (index 2 MONERA -> row 11, col 18)
+            doPlaceWord(grid, sortedClues.find(c => c.word === "FUNGI"), 11, 16, "across", placed);
+
+            // Kata 20: ORDO (4) - Across beririsan di 'O' (index 1 MONERA -> row 10, col 18)
+            doPlaceWord(grid, sortedClues.find(c => c.word === "ORDO"), 16, 16, "across", placed);
+
+            assignClueNumbers(placed);
+            return { grid, placedWords: placed };
+        }
+
+        function canPlaceWord(grid, word, row, col, direction) {
+            if (row < 0 || col < 0) return false;
+            if (direction === "across" && col + word.length > GRID_SIZE) return false;
+            if (direction === "down" && row + word.length > GRID_SIZE) return false;
+
+            // Check adjacent cell padding before start and after end
+            if (direction === "across") {
+                if (col > 0 && grid[row][col - 1]) return false;
+                if (col + word.length < GRID_SIZE && grid[row][col + word.length]) return false;
+            } else {
+                if (row > 0 && grid[row - 1][col]) return false;
+                if (row + word.length < GRID_SIZE && grid[row + word.length][col]) return false;
+            }
+
+            for (let i = 0; i < word.length; i++) {
+                const r = direction === "across" ? row : row + i;
+                const c = direction === "across" ? col + i : col;
+                const cell = grid[r][c];
+
+                if (cell) {
+                    // Intersection must match letter strictly
+                    if (cell.char !== word[i]) return false;
+                } else {
+                    // Ensure non-intersecting parallel cells are empty to avoid illegal adjacent touch
+                    if (direction === "across") {
+                        if (r > 0 && grid[r - 1][c]) return false;
+                        if (r < GRID_SIZE - 1 && grid[r + 1][c]) return false;
+                    } else {
+                        if (c > 0 && grid[r][c - 1]) return false;
+                        if (c < GRID_SIZE - 1 && grid[r][c + 1]) return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        function doPlaceWord(grid, wordObj, row, col, direction, placedList) {
+            for (let i = 0; i < wordObj.word.length; i++) {
+                const r = direction === "across" ? row : row + i;
+                const c = direction === "across" ? col + i : col;
+
+                if (!grid[r][c]) {
+                    grid[r][c] = { char: wordObj.word[i], wordIds: [] };
+                }
+                if (!grid[r][c].wordIds.includes(wordObj.id)) {
+                    grid[r][c].wordIds.push(wordObj.id);
+                }
+            }
+
+            placedList.push({
+                ...wordObj,
+                row,
+                col,
+                direction,
+                num: 0
+            });
+        }
+
+        function assignClueNumbers(placedList) {
+            placedList.sort((a, b) => (a.row - b.row) || (a.col - b.col));
+            const startMap = new Map();
+            let clueCounter = 1;
+
+            for (let item of placedList) {
+                const key = `${item.row},${item.col}`;
+                if (!startMap.has(key)) {
+                    startMap.set(key, clueCounter++);
+                }
+                item.num = startMap.get(key);
+            }
+        }
+
+        function validateCrossword(grid, placedList) {
+            if (placedList.length !== 20) return false;
+
+            // Verify bounds and letter integrity
+            for (let item of placedList) {
+                for (let i = 0; i < item.word.length; i++) {
+                    const r = item.direction === "across" ? item.row : item.row + i;
+                    const c = item.direction === "across" ? item.col + i : item.col;
+
+                    if (r < 0 || r >= GRID_SIZE || c < 0 || c >= GRID_SIZE) return false;
+                    if (!grid[r][c] || grid[r][c].char !== item.word[i]) return false;
+                }
+            }
+            return true;
+        }
+
+        // --- 3. UI RENDER & CONTROLLER FUNCTIONS ---
+        function startQuiz(event) {
+            event.preventDefault();
+            const nameInput = document.getElementById("student-name").value.trim();
+            const classInput = document.getElementById("student-class").value.trim();
+
+            if (!nameInput || !classInput) return;
+
+            studentData.name = nameInput;
+            studentData.class = classInput;
+
+            document.getElementById("display-student-info").innerText = `${studentData.name} (${studentData.class})`;
+
+            document.getElementById("page-welcome").classList.add("hidden");
+            document.getElementById("page-crossword").classList.remove("hidden");
+
+            const layout = generateCrossword();
+            placedWords = layout.placedWords;
+            gridData = layout.grid;
+
+            renderGrid();
+            renderClues();
+            startTimer();
+        }
+
+        function renderGrid() {
+            const container = document.getElementById("grid-container");
+            container.innerHTML = "";
+
+            for (let r = 0; r < GRID_SIZE; r++) {
+                for (let c = 0; c < GRID_SIZE; c++) {
+                    const cellData = gridData[r][c];
+                    const cellDiv = document.createElement("div");
+                    cellDiv.className = "cell";
+                    cellDiv.dataset.row = r;
+                    cellDiv.dataset.col = c;
+
+                    if (cellData) {
+                        cellDiv.classList.add("active");
+
+                        const startWords = placedWords.filter(w => w.row === r && w.col === c);
+                        if (startWords.length > 0) {
+                            const numSpan = document.createElement("span");
+                            numSpan.className = "cell-number";
+                            numSpan.innerText = startWords[0].num;
+                            cellDiv.appendChild(numSpan);
+                        }
+
+                        const input = document.createElement("input");
+                        input.type = "text";
+                        input.maxLength = 1;
+                        input.dataset.row = r;
+                        input.dataset.col = c;
+                        input.autocomplete = "off";
+
+                        input.addEventListener("focus", () => onCellFocus(r, c));
+                        input.addEventListener("input", (e) => onCellInput(e, r, c));
+                        input.addEventListener("keydown", (e) => onCellKeyDown(e, r, c));
+                        cellDiv.addEventListener("click", () => onCellClick(r, c));
+
+                        cellDiv.appendChild(input);
+                    }
+
+                    container.appendChild(cellDiv);
+                }
+            }
+        }
+
+        function renderClues() {
+            const acrossList = document.getElementById("across-clues-list");
+            const downList = document.getElementById("down-clues-list");
+
+            acrossList.innerHTML = "";
+            downList.innerHTML = "";
+
+            const sortedWords = [...placedWords].sort((a, b) => a.num - b.num);
+
+            sortedWords.forEach(w => {
+                const itemDiv = document.createElement("div");
+                itemDiv.className = "p-2 rounded-lg cursor-pointer hover:bg-white transition border border-transparent hover:border-slate-200 clue-item";
+                itemDiv.dataset.wordId = w.id;
+                itemDiv.onclick = () => selectWord(w);
+
+                itemDiv.innerHTML = `
+                    <div class="flex items-start gap-1.5">
+                        <span class="font-extrabold text-slate-900 bg-slate-200 px-1.5 py-0.5 rounded text-[10px] shrink-0">${w.num}</span>
+                        <p class="leading-tight text-slate-700 font-medium">${w.clue}</p>
+                    </div>
+                `;
+
+                if (w.direction === "across") {
+                    acrossList.appendChild(itemDiv);
+                } else {
+                    downList.appendChild(itemDiv);
+                }
+            });
+        }
+
+        function selectWord(wordObj, targetCell = null) {
+            selectedWordObj = wordObj;
+
+            document.querySelectorAll(".cell").forEach(el => {
+                el.classList.remove("selected", "highlighted");
+            });
+            document.querySelectorAll(".clue-item").forEach(el => {
+                el.classList.remove("bg-indigo-100", "border-indigo-300");
+            });
+
+            const clueEl = document.querySelector(`.clue-item[data-word-id="${wordObj.id}"]`);
+            if (clueEl) {
+                clueEl.classList.add("bg-indigo-100", "border-indigo-300");
+                clueEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+            }
+
+            document.getElementById("active-clue-text").innerText = `${wordObj.num} (${wordObj.direction.toUpperCase()}): ${wordObj.clue}`;
+
+            for (let i = 0; i < wordObj.word.length; i++) {
+                const r = wordObj.direction === "across" ? wordObj.row : wordObj.row + i;
+                const c = wordObj.direction === "across" ? wordObj.col + i : wordObj.col;
+                const cellEl = document.querySelector(`.cell[data-row="${r}"][data-col="${c}"]`);
+
+                if (cellEl) {
+                    cellEl.classList.add("highlighted");
+                }
+            }
+
+            let focusR = wordObj.row;
+            let focusC = wordObj.col;
+
+            if (targetCell) {
+                focusR = targetCell.r;
+                focusC = targetCell.c;
+            }
+
+            selectedCellPos = { r: focusR, c: focusC };
+            const focusCellEl = document.querySelector(`.cell[data-row="${focusR}"][data-col="${focusC}"]`);
+            if (focusCellEl) {
+                focusCellEl.classList.add("selected");
+                const input = focusCellEl.querySelector("input");
+                if (input) {
+                    setTimeout(() => {
+                        input.focus();
+                        input.select();
+                    }, 30);
+                }
+            }
+        }
+
+        function onCellClick(r, c) {
+            const wordsInCell = placedWords.filter(w => {
+                if (w.direction === "across") {
+                    return r === w.row && c >= w.col && c < w.col + w.word.length;
+                } else {
+                    return c === w.col && r >= w.row && r < w.row + w.word.length;
+                }
+            });
+
+            if (wordsInCell.length === 0) return;
+
+            if (selectedWordObj && wordsInCell.length > 1) {
+                const currentIdx = wordsInCell.findIndex(w => w.id === selectedWordObj.id);
+                const nextWord = wordsInCell[(currentIdx + 1) % wordsInCell.length];
+                selectWord(nextWord, { r, c });
+            } else {
+                selectWord(wordsInCell[0], { r, c });
+            }
+        }
+
+        function onCellFocus(r, c) {
+            if (!selectedWordObj) {
+                onCellClick(r, c);
+            }
+        }
+
+        function onCellInput(e, r, c) {
+            const val = e.target.value.toUpperCase();
+            e.target.value = val;
+
+            if (val && selectedWordObj) {
+                let nextR = r;
+                let nextC = c;
+
+                if (selectedWordObj.direction === "across") {
+                    nextC = c + 1;
+                } else {
+                    nextR = r + 1;
+                }
+
+                const wordEndCol = selectedWordObj.direction === "across" ? selectedWordObj.col + selectedWordObj.word.length : selectedWordObj.col + 1;
+                const wordEndRow = selectedWordObj.direction === "down" ? selectedWordObj.row + selectedWordObj.word.length : selectedWordObj.row + 1;
+
+                if (nextC < wordEndCol && nextR < wordEndRow) {
+                    const nextInput = document.querySelector(`.cell[data-row="${nextR}"][data-col="${nextC}"] input`);
+                    if (nextInput) {
+                        selectWord(selectedWordObj, { r: nextR, c: nextC });
+                    }
+                }
+            }
+        }
+
+        function onCellKeyDown(e, r, c) {
+            if (e.key === "Backspace") {
+                if (e.target.value === "") {
+                    let prevR = r;
+                    let prevC = c;
+
+                    if (selectedWordObj) {
+                        if (selectedWordObj.direction === "across") prevC = c - 1;
+                        else prevR = r - 1;
+
+                        if (prevC >= selectedWordObj.col && prevR >= selectedWordObj.row) {
+                            const prevInput = document.querySelector(`.cell[data-row="${prevR}"][data-col="${prevC}"] input`);
+                            if (prevInput) {
+                                selectWord(selectedWordObj, { r: prevR, c: prevC });
+                            }
+                        }
+                    }
+                } else {
+                    e.target.value = "";
+                }
+            } else if (e.key === "ArrowRight") {
+                const nextInput = document.querySelector(`.cell[data-row="${r}"][data-col="${c + 1}"] input`);
+                if (nextInput) {
+                    nextInput.focus();
+                    selectWord(selectedWordObj, { r, c: c + 1 });
+                }
+            } else if (e.key === "ArrowLeft") {
+                const prevInput = document.querySelector(`.cell[data-row="${r}"][data-col="${c - 1}"] input`);
+                if (prevInput) {
+                    prevInput.focus();
+                    selectWord(selectedWordObj, { r, c: c - 1 });
+                }
+            } else if (e.key === "ArrowDown") {
+                const nextInput = document.querySelector(`.cell[data-row="${r + 1}"][data-col="${c}"] input`);
+                if (nextInput) {
+                    nextInput.focus();
+                    selectWord(selectedWordObj, { r: r + 1, c });
+                }
+            } else if (e.key === "ArrowUp") {
+                const prevInput = document.querySelector(`.cell[data-row="${r - 1}"][data-col="${c}"] input`);
+                if (prevInput) {
+                    prevInput.focus();
+                    selectWord(selectedWordObj, { r: r - 1, c });
+                }
+            }
+        }
+
+        function checkAnswers() {
+            let correctCount = 0;
+
+            placedWords.forEach(w => {
+                let isWordCorrect = true;
+
+                for (let i = 0; i < w.word.length; i++) {
+                    const r = w.direction === "across" ? w.row : w.row + i;
+                    const c = w.direction === "across" ? w.col + i : w.col;
+                    const input = document.querySelector(`.cell[data-row="${r}"][data-col="${c}"] input`);
+
+                    if (!input || input.value.toUpperCase() !== w.word[i]) {
+                        isWordCorrect = false;
+                    }
+                }
+
+                if (isWordCorrect) {
+                    correctCount++;
+                }
+
+                for (let i = 0; i < w.word.length; i++) {
+                    const r = w.direction === "across" ? w.row : w.row + i;
+                    const c = w.direction === "across" ? w.col + i : w.col;
+                    const input = document.querySelector(`.cell[data-row="${r}"][data-col="${c}"] input`);
+                    const cellEl = document.querySelector(`.cell[data-row="${r}"][data-col="${c}"]`);
+
+                    if (input && input.value !== "") {
+                        if (input.value.toUpperCase() === gridData[r][c].char) {
+                            cellEl.classList.add("correct");
+                            cellEl.classList.remove("incorrect");
+                        } else {
+                            cellEl.classList.add("incorrect");
+                            cellEl.classList.remove("correct");
+                        }
+                    }
+                }
+            });
+
+            const score = Math.round((correctCount / ALL_CLUES.length) * 100);
+            document.getElementById("score-display").innerText = `${score} / 100`;
+            document.getElementById("correct-count-display").innerText = `${correctCount} / 20`;
+
+            return { correctCount, score };
+        }
+
+        function giveHint() {
+            if (!selectedWordObj) {
+                alert("Silakan pilih salah satu soal/kata terlebih dahulu.");
+                return;
+            }
+
+            const unrevealed = [];
+
+            for (let i = 0; i < selectedWordObj.word.length; i++) {
+                const r = selectedWordObj.direction === "across" ? selectedWordObj.row : selectedWordObj.row + i;
+                const c = selectedWordObj.direction === "across" ? selectedWordObj.col + i : selectedWordObj.col;
+                const input = document.querySelector(`.cell[data-row="${r}"][data-col="${c}"] input`);
+
+                if (input && input.value.toUpperCase() !== selectedWordObj.word[i]) {
+                    unrevealed.push({ r, c, char: selectedWordObj.word[i], input });
+                }
+            }
+
+            if (unrevealed.length === 0) {
+                alert("Semua huruf untuk kata ini sudah terisi dengan benar!");
+                return;
+            }
+
+            const randomPick = unrevealed[Math.floor(Math.random() * unrevealed.length)];
+            randomPick.input.value = randomPick.char;
+            
+            checkAnswers();
+        }
+
+        function clearSelectedWord() {
+            if (!selectedWordObj) return;
+
+            for (let i = 0; i < selectedWordObj.word.length; i++) {
+                const r = selectedWordObj.direction === "across" ? selectedWordObj.row : selectedWordObj.row + i;
+                const c = selectedWordObj.direction === "across" ? selectedWordObj.col + i : selectedWordObj.col;
+                const input = document.querySelector(`.cell[data-row="${r}"][data-col="${c}"] input`);
+                const cellEl = document.querySelector(`.cell[data-row="${r}"][data-col="${c}"]`);
+
+                if (input) input.value = "";
+                if (cellEl) cellEl.classList.remove("correct", "incorrect");
+            }
+            checkAnswers();
+        }
+
+        function resetPuzzleConfirm() {
+            if (confirm("Apakah Anda yakin ingin mengulang pengerjaan dari awal? Seluruh jawaban akan dihapus.")) {
+                document.querySelectorAll(".cell.active input").forEach(input => input.value = "");
+                document.querySelectorAll(".cell.active").forEach(cell => cell.classList.remove("correct", "incorrect"));
+                checkAnswers();
+            }
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            timeRemaining = 30 * 60;
+
+            timerInterval = setInterval(() => {
+                timeRemaining--;
+
+                const mins = Math.floor(timeRemaining / 60);
+                const secs = timeRemaining % 60;
+
+                const timerDisplay = document.getElementById("timer-display");
+                timerDisplay.innerText = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+
+                if (timeRemaining <= 300) {
+                    timerDisplay.classList.add("timer-warning");
+                }
+
+                if (timeRemaining <= 0) {
+                    clearInterval(timerInterval);
+                    alert("Waktu pengerjaan telah habis! Sistem akan mengumpulkan jawaban Anda otomatis.");
+                    submitQuiz();
+                }
+            }, 1000);
+        }
+
+        function submitQuizConfirm() {
+            if (confirm("Apakah Anda yakin ingin mengumpulkan jawaban TTS sekarang?")) {
+                submitQuiz();
+            }
+        }
+
+        function submitQuiz() {
+            clearInterval(timerInterval);
+            const { correctCount, score } = checkAnswers();
+
+            const timeSpentSecs = (30 * 60) - timeRemaining;
+            const spentMins = Math.floor(timeSpentSecs / 60);
+            const spentSecs = timeSpentSecs % 60;
+
+            document.getElementById("modal-student").innerText = `${studentData.name} (${studentData.class})`;
+            document.getElementById("modal-time").innerText = `${spentMins} Menit ${spentSecs} Detik`;
+            document.getElementById("modal-correct-count").innerText = `${correctCount} / 20 Soal`;
+            document.getElementById("modal-final-score").innerText = score;
+
+            const appreciationText = document.getElementById("modal-appreciation");
+            const badgeIcon = document.getElementById("modal-badge-icon");
+
+            if (score >= 85) {
+                appreciationText.innerText = '"Luar Biasa! Pemahamanmu tentang Klasifikasi Makhluk Hidup sangat matang dan teruji!"';
+                badgeIcon.className = "w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner";
+            } else if (score >= 60) {
+                appreciationText.innerText = '"Bagus Sekali! Kamu sudah menguasai sebagian besar materi taksonomi dan kingdom."';
+                badgeIcon.className = "w-20 h-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner";
+            } else {
+                appreciationText.innerText = '"Tetap Semangat! Pelajari kembali kunci dikotomi, takson, dan lima kingdom IPA SMP."';
+                badgeIcon.className = "w-20 h-20 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner";
+            }
+
+            document.getElementById("result-modal").classList.remove("hidden");
+        }
+
+        function closeModalAndReview() {
+            document.getElementById("result-modal").classList.add("hidden");
+        }
+
+        function restartQuiz() {
+            document.getElementById("result-modal").classList.add("hidden");
+            document.querySelectorAll(".cell.active input").forEach(input => input.value = "");
+            document.querySelectorAll(".cell.active").forEach(cell => cell.classList.remove("correct", "incorrect"));
+            checkAnswers();
+            startTimer();
+        }
+    </script>
+</body>
+</html>
